@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 type State =
   | { kind: "loading" }
   | { kind: "success"; orderId: string; amount: number; method?: string }
   | { kind: "error"; code?: string; message: string };
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessInner() {
   const params = useSearchParams();
   const paymentKey = params.get("paymentKey");
   const orderId = params.get("orderId");
@@ -144,5 +144,13 @@ export default function PaymentSuccessPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentSuccessInner />
+    </Suspense>
   );
 }
