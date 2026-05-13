@@ -15,6 +15,7 @@ type Product = {
   seller_name: string;
   status: ProductStatus;
   created_at: string;
+  user_id: string | null;
 };
 
 const statusStyles: Record<Exclude<ProductStatus, "판매중">, string> = {
@@ -47,13 +48,17 @@ export default async function ProductDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(
-      "id, title, description, price, image_url, seller_name, status, created_at",
-    )
-    .eq("id", id)
-    .maybeSingle();
+
+  const [{ data, error }, { data: userData }] = await Promise.all([
+    supabase
+      .from("products")
+      .select(
+        "id, title, description, price, image_url, seller_name, status, created_at, user_id",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
 
   if (error || !data) {
     notFound();
@@ -61,6 +66,7 @@ export default async function ProductDetailPage({
 
   const product = data as Product;
   const sold = product.status === "판매완료";
+  const isOwner = userData.user?.id != null && userData.user.id === product.user_id;
 
   return (
     <main className="flex-1 bg-orange-50/40 pb-24">
@@ -88,23 +94,27 @@ export default async function ProductDetailPage({
           <h1 className="flex-1 text-base font-semibold text-white sm:text-lg">
             고구마마켓
           </h1>
-          <Link
-            href={`/products/${product.id}/edit`}
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-semibold text-white transition hover:bg-white/20 active:bg-white/30 sm:px-3 sm:text-base"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-              className="size-4 sm:size-5"
-            >
-              <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-              <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-            </svg>
-            수정
-          </Link>
-          <DeleteButton productId={product.id} />
+          {isOwner && (
+            <>
+              <Link
+                href={`/products/${product.id}/edit`}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-semibold text-white transition hover:bg-white/20 active:bg-white/30 sm:px-3 sm:text-base"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                  className="size-4 sm:size-5"
+                >
+                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                  <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                </svg>
+                수정
+              </Link>
+              <DeleteButton productId={product.id} />
+            </>
+          )}
         </div>
       </header>
 
@@ -171,23 +181,31 @@ export default async function ProductDetailPage({
               {sold ? "판매완료된 상품입니다" : "가격 제안 가능"}
             </p>
           </div>
-          <button
-            type="button"
-            disabled={sold}
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-300 sm:px-6 sm:py-3 sm:text-base"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-              className="size-4 sm:size-5"
+          {sold ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white sm:px-6 sm:py-3 sm:text-base"
             >
-              <path d="M3.505 2.365A41.369 41.369 0 019 2c1.863 0 3.697.124 5.495.365 1.247.167 2.18 1.108 2.435 2.268a4.45 4.45 0 00-.577-.069 43.141 43.141 0 00-4.706 0C9.229 4.696 7.5 6.727 7.5 8.998v2.24c0 1.413.67 2.735 1.76 3.562l-2.98 2.98A.75.75 0 015 17.25v-3.443c-.501-.048-1-.106-1.495-.172C2.033 13.438 1 12.162 1 10.72V5.28c0-1.441 1.033-2.717 2.505-2.914z" />
-              <path d="M14 6c-.762 0-1.52.02-2.271.062C10.157 6.148 9 7.472 9 8.998v2.24c0 1.519 1.147 2.839 2.71 2.935.214.013.428.024.642.034.2.009.385.09.518.224l2.35 2.35a.75.75 0 001.28-.531v-2.07c1.453-.195 2.5-1.463 2.5-2.915V8.998c0-1.526-1.157-2.85-2.729-2.936A41.645 41.645 0 0014 6z" />
-            </svg>
-            {sold ? "거래완료" : "채팅하기"}
-          </button>
+              거래완료
+            </button>
+          ) : (
+            <Link
+              href={`/checkout/${product.id}`}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] sm:px-6 sm:py-3 sm:text-base"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+                className="size-4 sm:size-5"
+              >
+                <path d="M1 1.75A.75.75 0 0 1 1.75 1h1.628a1.75 1.75 0 0 1 1.734 1.51L5.18 3a65.25 65.25 0 0 1 13.36 1.412.75.75 0 0 1 .58.875 48.645 48.645 0 0 1-1.618 6.2.75.75 0 0 1-.712.513H6a2.503 2.503 0 0 0-2.292 1.5H17.25a.75.75 0 0 1 0 1.5H2.76a.75.75 0 0 1-.748-.807 4.002 4.002 0 0 1 2.716-3.486L3.626 2.716a.25.25 0 0 0-.248-.216H1.75A.75.75 0 0 1 1 1.75ZM6 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM17 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+              </svg>
+              구매하기
+            </Link>
+          )}
         </div>
       </footer>
     </main>

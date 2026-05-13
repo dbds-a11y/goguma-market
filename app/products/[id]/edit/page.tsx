@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProductForm from "../../_components/product-form";
 import { updateProduct } from "./actions";
@@ -10,7 +10,7 @@ type Product = {
   description: string | null;
   price: number;
   image_url: string | null;
-  seller_name: string;
+  user_id: string | null;
 };
 
 export default async function EditProductPage({
@@ -20,9 +20,17 @@ export default async function EditProductPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/login?next=/products/${id}/edit`);
+  }
+
   const { data, error } = await supabase
     .from("products")
-    .select("id, title, description, price, image_url, seller_name")
+    .select("id, title, description, price, image_url, user_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -31,6 +39,9 @@ export default async function EditProductPage({
   }
 
   const product = data as Product;
+  if (product.user_id !== user.id) {
+    redirect(`/products/${id}`);
+  }
   const action = updateProduct.bind(null, id);
 
   return (
@@ -70,7 +81,6 @@ export default async function EditProductPage({
             price: String(product.price),
             description: product.description ?? "",
             image_url: product.image_url ?? "",
-            seller_name: product.seller_name,
           }}
           submitLabel="수정"
           pendingLabel="수정 중..."

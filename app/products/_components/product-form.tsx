@@ -8,7 +8,6 @@ export type ProductFormValues = {
   price: string;
   description: string;
   image_url: string;
-  seller_name: string;
 };
 
 export type ProductFormState = {
@@ -16,7 +15,6 @@ export type ProductFormState = {
   fieldErrors?: {
     title?: string;
     price?: string;
-    seller_name?: string;
   };
   values?: ProductFormValues;
 };
@@ -148,28 +146,6 @@ export default function ProductForm({
         <p className="text-xs text-gray-500">
           비워두면 이미지 없이 저장됩니다.
         </p>
-      </div>
-
-      <div className="space-y-1.5">
-        <label
-          htmlFor="seller_name"
-          className="block text-sm font-semibold text-gray-800"
-        >
-          판매자 이름 <span className="text-orange-500">*</span>
-        </label>
-        <input
-          id="seller_name"
-          name="seller_name"
-          type="text"
-          required
-          maxLength={40}
-          defaultValue={values?.seller_name}
-          placeholder="홍길동"
-          className={`${inputClass} ${fieldErrors?.seller_name ? errorClass : ""}`}
-        />
-        {fieldErrors?.seller_name && (
-          <p className="text-xs text-red-600">{fieldErrors.seller_name}</p>
-        )}
       </div>
 
       <footer className="fixed inset-x-0 bottom-0 z-10 border-t border-orange-100 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">

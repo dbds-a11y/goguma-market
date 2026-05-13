@@ -1,6 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PROTECTED_PREFIXES = ["/checkout", "/products/new"];
+
+function isProtected(pathname: string) {
+  if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  // /products/[id]/edit
+  if (/^\/products\/[^/]+\/edit\/?$/.test(pathname)) return true;
+  return false;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -25,7 +34,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && isProtected(request.nextUrl.pathname)) {
+    const next = request.nextUrl.pathname + request.nextUrl.search;
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", next);
+    return NextResponse.redirect(loginUrl);
+  }
 
   return response;
 }
