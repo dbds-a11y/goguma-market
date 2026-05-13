@@ -21,7 +21,7 @@
   - `middleware.ts` — `updateSession()` 헬퍼 (Next 미들웨어용)
 - `middleware.ts` (루트) — 모든 요청에서 Supabase 세션 자동 갱신
 - 경로 별칭: `@/*` → 프로젝트 루트 (예: `@/lib/supabase/client`)
-- Turbopack 사용 (`next dev`)
+- 빌드 도구: webpack (`next dev --webpack`) — Next 16 기본값인 Turbopack은 이 환경(Windows)에서 OOM 크래시가 반복되어 webpack으로 고정
 
 ## 환경변수 (`.env.local`)
 - `NEXT_PUBLIC_SUPABASE_URL`
